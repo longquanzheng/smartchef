@@ -3,37 +3,11 @@
 'use strict';
 var AWS = require("aws-sdk");
 
-/**
-//how to use?
-    db.putRecipe(recipes[recipeName],function(){
-        db.getRecipe(function(recipe){
-                console.log("your recipe",recipe);
-                db.putSize(""+Date.now(),function(){
-                console.log("succ put size");
-                db.getSize(function(size){
-                    console.log("succ get size",size);
-                    db.putStep(""+Date.now(),function(){
-                        console.log("succ put step");
-                        db.getStep(function(step){
-                            console.log("succ get step",step);
-                            response.ask("Sorry, no idea how to make  Any other requests?");
-                        });
-                    });
-                    
-                });
-
-            });
-            
-        });
-        
-    });
-**/
-
 var db = (function () {
     var dynamodb = new AWS.DynamoDB({apiVersion: '2012-10-17'});
     var oneId = "qlong_chef";
 
-    return{
+    return {
 
         // recipe
         putRecipe : function(recipe,callback){

@@ -1,10 +1,19 @@
 {
   "intents": [
     {
+      "intent": "RecipeIntent",
+      "slots": [ 
+        {
+          "name": "Recipe",
+          "type": "LITERAL"
+        }
+      ]
+    },
+    {
       "intent": "IngredientIntent",
       "slots": [ 
         {
-          "name": "ItemName",
+          "name": "Servings",
           "type": "LITERAL"
         }
       ]
@@ -13,16 +22,7 @@
       "intent": "InstructionIntent",
       "slots": [ 
         {
-          "name": "ItemName",
-          "type": "LITERAL"
-        }
-      ]
-    },
-       {
-      "intent": "RecipeIntent",
-      "slots": [ 
-        {
-          "name": "ItemName",
+          "name": "Servings",
           "type": "LITERAL"
         }
       ]
@@ -30,6 +30,15 @@
        {
       "intent": "HelpIntent",
       "slots": [  ]
+    },
+       {
+      "intent": "TimerIntent",
+      "slots": [ 
+        {
+          "name": "Time",
+          "type": "LITERAL"
+        }
+      ]
     }
   ]
 }

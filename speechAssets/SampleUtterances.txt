@@ -1,7 +1,12 @@
-RecipeIntent how do i cook {steak | ItemName}
+RecipeIntent   how do I make {recipe | Recipe}
+RecipeIntent   how to make {recipe | Recipe}
 
-IngredientIntent ingredient {steak | ItemName}
+IngredientIntent   ingredients for {number | Servings}
+IngredientIntent   give me the ingredients
 
-InstructionIntent instruction {steak | ItemName}
+InstructionIntent   instructions for {number | Servings}
+InstructionIntent   tell me the instructions
+
+TimerIntent   yo give me {time | Time} seconds
 
 HelpIntent help
