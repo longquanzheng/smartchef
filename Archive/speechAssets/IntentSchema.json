@@ -1,0 +1,31 @@
+{
+  "intents": [
+    {
+      "intent": "RecipeIntent",
+      "slots": [
+      {
+        "name" : "Dish",
+        "type": "LITERAL"
+      }
+     ]
+    },
+   {
+      "intent": "IngredientIntent",
+      "slots": [ 
+      {
+        "name" : "Dish",
+        "type" : "LITERAL"
+      }
+      ]
+    },
+   {
+      "intent": "InstructionIntent",
+      "slots": [ 
+      {
+        "name" : "Dish",
+        "type" : "LITERAL"
+      }
+      ]
+    }
+  ]
+}

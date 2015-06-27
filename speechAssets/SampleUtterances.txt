@@ -1,0 +1,7 @@
+RecipeIntent how do i cook {steak | ItemName}
+
+IngredientIntent ingredient {steak | ItemName}
+
+InstructionIntent instruction {steak | ItemName}
+
+HelpIntent help

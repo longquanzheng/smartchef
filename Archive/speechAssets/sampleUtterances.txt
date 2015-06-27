@@ -1,0 +1,47 @@
+RecipeIntent how do I make {recipe | Dish}
+RecipeIntent how does one make {recipe | Dish}
+RecipeIntent teach me how to make {recipe | Dish}
+RecipeIntent teach me how to cook {recipe | Dish}
+RecipeIntent how do you cook  {recipe | Dish}
+RecipeIntent how do I cook {recipe | Dish}
+RecipeIntent how can I cook {recipe | Dish}
+RecipeIntent how can you cook {recipe | Dish}
+RecipeIntent how to cook {recipe | Dish}
+RecipeIntent how to make {recipe | Dish}
+RecipeIntent recipe for {recipe | Dish}
+RecipeIntent recipe to make {recipe | Dish}
+RecipeIntent recipe to cook {recipe | Dish}
+RecipeIntent instructions for {recipe | Dish}
+RecipeIntent instructions to make {recipe | Dish}
+RecipeIntent instructions to cook {recipe | Dish}
+RecipeIntent tell me how to cook {recipe | Dish}
+RecipeIntent tell me how to make {recipe | Dish}
+RecipeIntent tell me the recipe for {recipe | Dish}
+RecipeIntent teach me the recipe for {recipe | Dish}
+RecipeIntent give me the instructions to make {recipe | Dish}
+RecipeIntent give me the instructions to cook {recipe | Dish}
+RecipeIntent give me the instructions for {recipe | Dish}
+RecipeIntent give me the recipe for {recipe | Dish}
+RecipeIntent give me the recipe to make {recipe | Dish}
+RecipeIntent give me the recipe to cook {recipe | Dish}
+
+IngredientIntent what are the ingredients for {recipe | Dish}
+IngredientIntent ingredients for {recipe | Dish}
+IngredientIntent what do I need for {recipe | Dish}
+IngredientIntent what do I need to make {recipe | Dish}
+IngredientIntent what are the ingredients to make {recipe | Dish}
+IngredientIntent what do I need to cook {recipe | Dish}
+IngredientIntent what are the ingredients to cook {recipe | Dish}
+
+IngredientIntent what do I need
+IngredientIntent what do I need to cook that
+IngredientIntent what do I need to make that
+IngredientIntent what are the ingredients
+IngredientIntent what are the ingredients to make that
+IngredientIntent what are the ingredients for that
+IngredientIntent what are the ingredients to cook that
+IngredientIntent what ingredients do I need
+IngredientIntent what ingredients do I need to make that
+IngredientIntent what ingredients do I need for that
+IngredientIntent what ingredients do I need to cook that
+IngredientIntent necessary ingredients
