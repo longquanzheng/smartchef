@@ -6,7 +6,7 @@ var AWS = require("aws-sdk");
 var db = (function () {
     var dynamodb = new AWS.DynamoDB({apiVersion: '2012-10-17'});
 
-     Game.prototype = {
+     DB.prototype = {
 
         oneId : "qlong_chef",
 
