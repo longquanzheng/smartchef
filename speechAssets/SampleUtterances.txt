@@ -10,3 +10,5 @@ InstructionIntent   tell me the instructions
 TimerIntent   yo give me {time | Time} seconds
 
 HelpIntent help
+
+MistakeIntent I have put {number | Amount} amount of {recipe|Ingredient} by mistake

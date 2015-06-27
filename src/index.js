@@ -148,19 +148,19 @@ MyChef.prototype.intentHandlers = {
                                     console.log("logged recipe",recipe);
                                     db.putSize("1",function(){
 
-                                        console.log("succ put size");
+                                        console.log("succ put size2");
                                         //db.getSize(function(size){
 
-                                            console.log("succ get size",size);
+                                    
                                             db.putStep("0",function(){
 
                                                 console.log("succ put step");
                                                // db.getStep(function(step){
-
-                                                    response.askWithCard(
-                                                    "I know about " + recipeName + "! Do you want to hear the ingredients or shall I explain instructions?",
-                                                    "Sorry, didn't quite catch that. Ingredients, or instructions?", 
-                                                    cardTitle, cardContent);
+                                                    response.ask("Sorry, I");
+                                                    // response.askWithCard(
+                                                    // "I know about " + recipeName + "! Do you want to hear the ingredients or shall I explain instructions?",
+                                                    // "Sorry, didn't quite catch that. Ingredients, or instructions?", 
+                                                    // cardTitle, cardContent);
                                                 });
                                           //  }); 
                                         //});
@@ -168,10 +168,10 @@ MyChef.prototype.intentHandlers = {
                                 });
                             });
 
-                            response.askWithCard(
-                                "I know about " + recipeName + "! Do you want to hear the ingredients or shall I explain instructions?",
-                                "Sorry, didn't quite catch that. Ingredients, or instructions?", 
-                                cardTitle, cardContent);
+                            // response.askWithCard(
+                            //     "I know about " + recipeName + "! Do you want to hear the ingredients or shall I explain instructions?",
+                            //     "Sorry, didn't quite catch that. Ingredients, or instructions?", 
+                            //     cardTitle, cardContent);
                             // } else {
                             //     response.ask("Sorry, I have no idea how to make " + recipeName + ". Any other requests?");
                             // }
@@ -268,84 +268,112 @@ MyChef.prototype.intentHandlers = {
     },
 
     InstructionIntent: function (intent, session, response) {
-    var servingsOrRecipe = intent.slots.Servings,
-        servings;
-    
-    var cardTitle = "Step #(step number from db)";
+        var servingsOrRecipe = intent.slots.Servings,
+            servings;
+        
+        var cardTitle = "Step #(step number from db)";
 
-    if(servingsOrRecipe){
-        servings = parseInt(servingsOrRecipe.value);
-        if (isNaN(servings)) //recipe
-        {
-            console.log("hi");//do same stuff as recipeIntent
+        if(servingsOrRecipe){
+            servings = parseInt(servingsOrRecipe.value);
+            if (isNaN(servings)) //recipe
+            {
+                console.log("hi");//do same stuff as recipeIntent
+                db.getStep(function(step){
+                    doInterpretStep(step);
+                });
+            }
+            else                         //servings
+            { console.log("no");
+                db.putSize(servings,function(){
+                    db.putStep(1,function(){
+                        doInterpretStep(1);
+                    });    
+                });
+                
+            }
+        }else{
+            db.getStep(function(step){
+                doInterpretStep(step);
+            });
         }
-        else                         //servings
-        { console.log("no");
-            //updateSize(servings);
-            //updateStep(1);
-        }
-    }
-    //interpret step
-    var stepIndex = 0//getStep() - 1;
-    var recipe = recipes["steak"];//getRecipe();
-    var step = recipe["steps"][stepIndex];
-    var str = "";
-    var size = 1;//getSize() / recipe.serves;
-    
-    for(var i = 0; i < step.length; i++) {
-        if(step.charAt(i) == '~') {
-            var numstr = "";
-            i+=2;
-            for(var j = i; j < step.length; j++) {
-                if(step.charAt(i) == '~') {
-                    i++;
-                    var num = parseInt(numstr) * size;
-                    str += "" + num;
-                    break;
+
+        function doInterpretStep(stepIndexRaw){
+            //interpret step
+            var stepIndex = stepIndexRaw-1;//getStep() - 1;
+            var recipe = recipes["steak"];//getRecipe();
+
+            if(recipe["steps"].length <= stepIndex){
+                console.log("step is ",stepIndex);
+                db.putStep(1,function(){
+                    response.ask("Congratulations! You have completed all the steps!");
+                });
+            }else{
+                console.log(recipe["steps"][stepIndex]);
+            
+
+                var step = recipe["steps"][stepIndex];
+                var str = "";
+                var size = 1;//getSize() / recipe.serves;
+                
+
+                for(var i = 0; i < step.length; i++) {
+                    if(step.charAt(i) == '~') {
+                        var numstr = "";
+                        i+=2;
+                        for(var j = i; j < step.length; j++) {
+                            if(step.charAt(i) == '~') {
+                                i++;
+                                var num = parseInt(numstr) * size;
+                                str += "" + num;
+                                break;
+                            }
+                            numstr += step.charAt(j);
+                            i++;
+                        }
+                    }
+                    else if(step.charAt(i) == '*'){
+                        var numstr = "";
+                        i+=2;
+                        for(var j = i; j < step.length; j++) {
+                            if(step.charAt(i) == '*') {
+                                i++;
+                                var num = parseInt(numstr);
+                                var hrs = num/3600;
+                                num %= 3600;
+                                var min = num/60;
+                                num %= 60;
+                                var sec = num;
+                                if(hrs > 0){
+                                    
+                                }
+                                if(min > 0){
+                                    
+                                }
+                                if(sec > 0)
+                                {
+                                    str += "" + sec + " seconds";
+                                }
+                                break;
+                            }
+                            numstr += step.charAt(j);
+                            i++;
+                        }               
+                    }
+                    else {
+                        str += step.charAt(i);
+                    }
                 }
-                numstr += step.charAt(j);
-                i++;
+                
+                if (step) {
+                    db.putStep( parseInt(stepIndexRaw)+1 ,function(){
+                        response.askWithCard(str + ". Let me know when you're ready for the next step.", cardTitle, str);
+                    });
+                } else {
+                    response.ask("Hmm. Weird. I had some problems getting the instructions. Try asking again.");
+                }
             }
         }
-        else if(step.charAt(i) == '*'){
-            var numstr = "";
-            i+=2;
-            for(var j = i; j < step.length; j++) {
-                if(step.charAt(i) == '*') {
-                    i++;
-                    var num = parseInt(numstr);
-                    var hrs = num/3600;
-                    num %= 3600;
-                    var min = num/60;
-                    num %= 60;
-                    var sec = num;
-                    if(hrs > 0){
-                        
-                    }
-                    if(min > 0){
-                        
-                    }
-                    if(sec > 0)
-                    {
-                        str += "" + sec + " seconds";
-                    }
-                    break;
-                }
-                numstr += step.charAt(j);
-                i++;
-            }               
-        }
-        else {
-            str += step.charAt(i);
-        }
-    }
-    
-    if (step) {
-        response.askWithCard(str + ". Let me know when you're ready for the next step.", cardTitle, str);
-    } else {
-        response.ask("Hmm. Weird. I had some problems getting the instructions. Try asking again.");
-    }
-},  
+    },  
 
 
     // InstructionIntent: function (intent, session, response) {
@@ -383,6 +411,11 @@ MyChef.prototype.intentHandlers = {
                 response.ask("It's been " + time + " milliseconds. Now what?", "I waited, what else do you want?");
             }, time);
         }
+    },
+    MistakeIntent: function (intent, session, response) {
+        var amount = intent.slots.Amount.value;
+        var type = intent.slots.Ingredient.value;
+        response.ask("sorr to know that you put "+amount+" of "+type +" by mistake");
     }
 };
 
