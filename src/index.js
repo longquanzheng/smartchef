@@ -14,10 +14,29 @@
 
 'use strict';
 
+var http = require('http');
+var https = require('https');
+
+var unitAbbrev = {
+    'tbs' : 'tablespoon',
+    'tbsp' : 'tablespoon',
+    'tbl' : 'tablespoon',
+    'tsp' : 'teaspoon',
+    'oz' : 'ounce',
+    'lb' : 'pound',
+    'fl oz' : 'fluid ounce',
+    'c' : 'cup',
+    'pt' : 'pint',
+    'qt' : 'quart',
+    'gal' : 'gallon',
+    'doz' : 'dozen',
+    'to taste' : ''
+}
+
 var AlexaSkill = require('./AlexaSkill'),
-    api = require('./api'),
-    recipes = require('./recipes');
-    //db = require('./db');
+    getInstructions = require('./api').getInstructions,
+    recipes = require('./recipes'),
+    db = require('./db');
 
 var APP_ID = undefined; //replace with 'amzn1.echo-sdk-ams.app.[your-unique-value-here]';
 
@@ -46,34 +65,134 @@ MyChef.prototype.intentHandlers = {
 
         // get the Dish's name (lowercase)
         var recipeName = intent.slots.Recipe.value.toLowerCase();
-        var cardTitle = "Recipe: " + recipeName;
+        var cardTitle = "Recipe intent received: " + recipeName;
+        var cardContent = "Recipe found. Maybe add info here about ingredient/instruction count.";
 
-        if (recipes[recipeName]) { // step 0
-            // recipe exists
+        http.get('http://api.pearson.com:80/kitchen-manager/v1/recipes?name-contains=' + recipeName, function(res) {
+            var body = '';
+            res.setEncoding('utf8');
+            res.on('data', function(chunk) {
+                body += chunk;
+            });
 
-            // step 1
-            //db.putRecipe(recipes[recipeName]);
+            res.on('end', function() {
+                var content = JSON.parse(body);
+                console.log(content);
+                console.log(content['count']);
 
-            // step 2
-            //db.updateSize(1);
+                if (content["count"] === 0) {
+                    response.ask("Sorry, I have no idea how to make " + recipeName + ". Any other requests???");
+                } else {
+                    var recipe = content['results'][0];
+                    
+                    https.get(recipe['url'], function(res) {
+                      var body = '';
+                      res.setEncoding('utf8');
+                      res.on('data', function(chunk) {
+                        body += chunk;
+                      });
 
-            // step 3
-            //db.updateStep(0);
+                        res.on('end', function() {
+                            var content = JSON.parse(body);
 
-            response.askWithCard(
-                "I know about " + recipeName + ". Do you want the ingredients or the instructions?",
-                "Sorry, didn't quite catch that. Ingredients, or instructions?", 
-                cardTitle, "Recipe found. Maybe add info here about ingredient/instruction count.");
-        } else {
-            response.ask("Sorry, no idea how to make " + recipeName + ". Any other requests?");
-        }
+                            var category = content['cuisine'];
+                            var index = category.indexOf(':');
+                            if (index !== -1) {
+                                category = category.substring(0, index);
+                            }
+
+                            var ingredients = {};
+                            for (var i = 0; i < content['ingredients'].length; i++) {
+                                var ingrd = content['ingredients'][i];
+
+                                var quantity = parseInt(ingrd['quantity']);
+                                if (!quantity) {
+                                    quantity = 0
+                                }
+
+                                var unit = ingrd['unit'].toLowerCase();
+                                if (unit in unitAbbrev) {
+                                    unit = unitAbbrev[unit];
+                                }
+
+                                ingredients[ingrd['name']] = [quantity, unit];
+                            }
+
+                            var details = {
+                                'category' : category,
+                                'serves' : content['serves'],
+                                'ingredients' : ingredients,
+                                'steps' : content['directions']
+                            };
+
+                            var result = {};
+                            result[recipe['name']] = details;
+
+                            console.log(result);
+
+                            //if (recipes[recipeName]) { // step 0
+                            // recipe exists
+
+                            // step 1
+                            //db.putRecipe(recipes[recipeName]);
+
+                            // step 2
+                            //db.updateSize(1);
+
+                            // step 3
+                            //db.updateStep(0);
+
+                            db.putRecipe(result[recipe['name']],function(){
+                                //db.getRecipe(function(recipe){
+
+                                    console.log("logged recipe",recipe);
+                                    db.putSize("1",function(){
+
+                                        console.log("succ put size");
+                                        //db.getSize(function(size){
+
+                                            console.log("succ get size",size);
+                                            db.putStep("0",function(){
+
+                                                console.log("succ put step");
+                                               // db.getStep(function(step){
+
+                                                    response.askWithCard(
+                                                    "I know about " + recipeName + "! Do you want to hear the ingredients or shall I explain instructions?",
+                                                    "Sorry, didn't quite catch that. Ingredients, or instructions?", 
+                                                    cardTitle, cardContent);
+                                                });
+                                          //  }); 
+                                        //});
+                                    //});
+                                });
+                            });
+
+                            response.askWithCard(
+                                "I know about " + recipeName + "! Do you want to hear the ingredients or shall I explain instructions?",
+                                "Sorry, didn't quite catch that. Ingredients, or instructions?", 
+                                cardTitle, cardContent);
+                            // } else {
+                            //     response.ask("Sorry, I have no idea how to make " + recipeName + ". Any other requests?");
+                            // }
+                        });
+                    }).on('error', function(e) {
+                        console.log("Got error: " + e.message);
+                    });
+                }
+            });
+
+        }).on('error', function(e) {
+            console.log("Got error: ", e);
+        });
     },
 
     IngredientIntent: function (intent, session, response) {
         var servingsOrRecipe = intent.slots.Servings,
             servings;
         
-            var cardTitle = "ingredient intent";
+        var cardTitle = "Ingredient intent received.";
+        var cardContent = "";
 
         if (servingsOrRecipe) {
             servings = parseInt(servingsOrRecipe.value);
@@ -143,91 +262,90 @@ MyChef.prototype.intentHandlers = {
         }
         
         //respond
-        response.askWithCard(str + "yo u want instructions o what", "ingredients. speak up yo.", cardTitle, str);
+        response.askWithCard(
+            str, "Now, would you like to hear the ingredients again or shall I explain the instructions?",
+            cardTitle, cardContent);
     },
 
-        InstructionIntent: function (intent, session, response) {
-        var servingsOrRecipe = intent.slots.Servings,
-            servings;
-        
-        var cardTitle = "instruction intent step";
+    InstructionIntent: function (intent, session, response) {
+    var servingsOrRecipe = intent.slots.Servings,
+        servings;
+    
+    var cardTitle = "Step #(step number from db)";
 
-        if(servingsOrRecipe){
-            servings = parseInt(servingsOrRecipe.value);
-            if (isNaN(servings)) //recipe
-            {
-                console.log("hi");//do same stuff as recipeIntent
-            }
-            else                         //servings
-            { console.log("no");
-                //updateSize(servings);
-                //updateStep(1);
-            }
+    if(servingsOrRecipe){
+        servings = parseInt(servingsOrRecipe.value);
+        if (isNaN(servings)) //recipe
+        {
+            console.log("hi");//do same stuff as recipeIntent
         }
-        //interpret step
-        var stepIndex = 0//getStep() - 1;
-        var recipe = recipes["steak"];//getRecipe();
-        var step = recipe["steps"][stepIndex];
-        var str = "";
-        var size = 1;//getSize() / recipe.serves;
-        
-        for(var i = 0; i < step.length; i++) {
-            if(step.charAt(i) == '~') {
-                var numstr = "";
-                i+=2;
-                for(var j = i; j < step.length; j++) {
-                    if(step.charAt(i) == '~') {
-                        i++;
-                        var num = parseInt(numstr) * size;
-                        str += "" + num;
-                        break;
-                    }
-                    numstr += step.charAt(j);
+        else                         //servings
+        { console.log("no");
+            //updateSize(servings);
+            //updateStep(1);
+        }
+    }
+    //interpret step
+    var stepIndex = 0//getStep() - 1;
+    var recipe = recipes["steak"];//getRecipe();
+    var step = recipe["steps"][stepIndex];
+    var str = "";
+    var size = 1;//getSize() / recipe.serves;
+    
+    for(var i = 0; i < step.length; i++) {
+        if(step.charAt(i) == '~') {
+            var numstr = "";
+            i+=2;
+            for(var j = i; j < step.length; j++) {
+                if(step.charAt(i) == '~') {
                     i++;
+                    var num = parseInt(numstr) * size;
+                    str += "" + num;
+                    break;
                 }
+                numstr += step.charAt(j);
+                i++;
             }
-            else if(step.charAt(i) == '*'){
-                var numstr = "";
-                i+=2;
-                for(var j = i; j < step.length; j++) {
-                    if(step.charAt(i) == '*') {
-                        i++;
-                        var num = parseInt(numstr);
-                        var hrs = num/3600;
-                        num %= 3600;
-                        var min = num/60;
-                        num %= 60;
-                        var sec = num;
-                        if(hrs > 0){
-                            
-                        }
-                        if(min > 0){
-                            
-                        }
-                        if(sec > 0)
-                        {
-                            str += "" + sec + " seconds";
-                        }
-                        break;
-                    }
-                    numstr += step.charAt(j);
+        }
+        else if(step.charAt(i) == '*'){
+            var numstr = "";
+            i+=2;
+            for(var j = i; j < step.length; j++) {
+                if(step.charAt(i) == '*') {
                     i++;
-                }               
-            }
-            else {
-                str += step.charAt(i);
-            }
+                    var num = parseInt(numstr);
+                    var hrs = num/3600;
+                    num %= 3600;
+                    var min = num/60;
+                    num %= 60;
+                    var sec = num;
+                    if(hrs > 0){
+                        
+                    }
+                    if(min > 0){
+                        
+                    }
+                    if(sec > 0)
+                    {
+                        str += "" + sec + " seconds";
+                    }
+                    break;
+                }
+                numstr += step.charAt(j);
+                i++;
+            }               
         }
-        
-        
-        
-        //respond
-        if (step) {
-            response.tellWithCard(str + "Lemme know if u wanna keep goin lol.", cardTitle, str);
-        } else {
-            response.ask("sorry but instructions failed lol idk wat u wanna do");
+        else {
+            str += step.charAt(i);
         }
-    },
+    }
+    
+    if (step) {
+        response.askWithCard(str + ". Let me know when you're ready for the next step.", cardTitle, str);
+    } else {
+        response.ask("Hmm. Weird. I had some problems getting the instructions. Try asking again.");
+    }
+},  
 
 
     // InstructionIntent: function (intent, session, response) {

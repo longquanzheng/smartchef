@@ -17,26 +17,7 @@ var unitAbbrev = {
 	'to taste' : ''
 }
 
-function getRecipe (keyword) {
-	http.get('http://api.pearson.com:80/kitchen-manager/v1/recipes?name-contains=' + keyword, function(res) {
-	    var body = '';
-	    res.setEncoding('utf8');
-	    res.on('data', function(chunk) {
-	        body += chunk;
-	    });
-
-	    res.on('end', function() {
-	    	var content = JSON.parse(body);
-	    	var recipe = content['results'][0];
-	    	getInstructions(recipe);
-	    });
-
-	}).on('error', function(e) {
-	      console.log("Got error: ", e);
-	});
-}
-
-var getInstructions = function (recipe) {
+module.exports.getInstructions = function (recipe) {
 	https.get(recipe['url'], function(res) {
 	  var body = '';
 	  res.setEncoding('utf8');
@@ -87,5 +68,3 @@ var getInstructions = function (recipe) {
 	  console.log("Got error: " + e.message);
 	});
 }
-
-getRecipe('chicken');
