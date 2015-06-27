@@ -188,83 +188,158 @@ MyChef.prototype.intentHandlers = {
     },
 
     IngredientIntent: function (intent, session, response) {
-        var servingsOrRecipe = intent.slots.Servings,
+        var servingModified = intent.slots.Servings,
             servings;
         
         var cardTitle = "Ingredient intent received.";
         var cardContent = "";
 
-        if (servingsOrRecipe) {
-            servings = parseInt(servingsOrRecipe.value);
-            if (isNaN(servings)) {//recipe
-                //do same stuff as recipeIntent
-            } else {
-                                     //servings
-                //updateSize(servings);
-            }
-        }
-        //interpret ingredient
-        var recipe = recipes["steak"];//getRecipe();
-        var ingredient_list = recipes["steak"]["ingredient_lists"];
-        var str = "You need ";
-        var i = 0;
-        var size = 1;//getSize() / recipe.serves;
+        var recipizzles = recipes["steak"]["ingredients"];
 
-        for (var key in ingredient_list) {
-            i++;
-            if (i != Object.keys(ingredient_list).length) {
+        if (servingModified) {
+            servings = parseInt(servingModified.value);
+            db.putSize(servings,function() {
+                db.getRecipe(function(recipe) {
+                    // the ingredientFunction
+                    //move this to function
+                        var ingredient_list = recipizzles;//recipe["ingredient_lists"];
+                        var str = "You need ";
+                        var i = 0;
+                        var size = 1;//getSize() / recipe.serves;
+                        db.getSize(function(serv_size){
+                            size = serv_size;
 
-                var ingredient = ingredient_list[key];
-                ingredient[0] *= size;
+                           for (var key in ingredient_list) {
+                            i++;
+                            if (i != Object.keys(ingredient_list).length) {
 
-                if (ingredient[0] == 0) {
+                                var ingredient = ingredient_list[key];
+                                ingredient[0] *= size;
 
-                    str = str + (key + ", ");
-                } else if (ingredient[0] == 1) {
+                                if (ingredient[0] == 0) {
 
-                    if (ingredient[1] == "") {
-                        str = str + (ingredient[0] + " " + key + ", ");
-                    } else {
-                        str = str + (ingredient[0] + " " + ingredient[1] + " of " + key + ", ");
-                    }
+                                    str = str + (key + ", ");
+                                } else if (ingredient[0] == 1) {
 
-                } else {
-                    if (ingredient[1] == "") {
-                        str = str + (ingredient[0] + " " + key + "s, ");
-                    } else {
-                        str = str + (ingredient[0] + " " + ingredient[1] + "s of " + key + ", ");
-                    }
-                }
-            } else {
-                var ingredient = ingredient_list[key];
-                ingredient[0] *= size;
+                                    if (ingredient[1] == "") {
+                                        str = str + (ingredient[0] + " " + key + ", ");
+                                    } else {
+                                        str = str + (ingredient[0] + " " + ingredient[1] + " of " + key + ", ");
+                                    }
 
-                if (ingredient[0] == 0) {
-                    str = str + ("and " + key + ".");
+                                } else {
+                                    if (ingredient[1] == "") {
+                                        str = str + (ingredient[0] + " " + key + "s, ");
+                                    } else {
+                                        str = str + (ingredient[0] + " " + ingredient[1] + "s of " + key + ", ");
+                                    }
+                                }
+                            } else {
+                                var ingredient = ingredient_list[key];
+                                ingredient[0] *= size;
 
-                } else if(ingredient[0] == 1) {
+                                if (ingredient[0] == 0) {
+                                    str = str + ("and " + key + ".");
 
-                    if (ingredient[1] == "") {
+                                } else if(ingredient[0] == 1) {
 
-                        str = str + ("and " + ingredient[0] + " " + key + ".");
-                    } else {
-                        str = str + ("and " + ingredient[0] + " " + ingredient[1] + " of " + key + ".");
+                                    if (ingredient[1] == "") {
 
-                    }
-                } else{
-                    if (ingredient[1] == "") {
-                        str = str + ("and " + ingredient[0] + " " + key + "s.");
-                    } else {
-                        str = str + ("and " + ingredient[0] + " " + ingredient[1] + "s of " + key + ".");
-                    }
-                }
-            }
-        }
-        
-        //respond
-        response.askWithCard(
-            str, "Now, would you like to hear the ingredients again or shall I explain the instructions?",
-            cardTitle, cardContent);
+                                        str = str + ("and " + ingredient[0] + " " + key + ".");
+                                    } else {
+                                        str = str + ("and " + ingredient[0] + " " + ingredient[1] + " of " + key + ".");
+
+                                    }
+                                } else{
+                                    if (ingredient[1] == "") {
+                                        str = str + ("and " + ingredient[0] + " " + key + "s.");
+                                    } else {
+                                        str = str + ("and " + ingredient[0] + " " + ingredient[1] + "s of " + key + ".");
+                                    }
+                                }
+                            }
+                        }
+                        
+                        //respond
+                        response.askWithCard(
+                            str, "Now, would you like to hear the ingredients again or shall I explain the instructions?",
+                            cardTitle, cardContent); 
+                        // move above to function
+                });
+            });
+        });
+        } else {
+            db.getRecipe(function(recipe) {
+                // the ingredientFunction
+                //move this to function
+                        var ingredient_list = recipe["ingredient_lists"];
+                        var str = "You need ";
+                        var i = 0;
+                        var size = 1;//getSize() / recipe.serves;
+                        db.getSize(function(serv_size){
+                            size = serv_size;
+
+                            console.log(size);
+
+                           for (var key in ingredient_list) {
+                            i++;
+                            if (i != Object.keys(ingredient_list).length) {
+
+                                var ingredient = ingredient_list[key];
+                                ingredient[0] *= size;
+
+                                if (ingredient[0] == 0) {
+
+                                    str = str + (key + ", ");
+                                } else if (ingredient[0] == 1) {
+
+                                    if (ingredient[1] == "") {
+                                        str = str + (ingredient[0] + " " + key + ", ");
+                                    } else {
+                                        str = str + (ingredient[0] + " " + ingredient[1] + " of " + key + ", ");
+                                    }
+
+                                } else {
+                                    if (ingredient[1] == "") {
+                                        str = str + (ingredient[0] + " " + key + "s, ");
+                                    } else {
+                                        str = str + (ingredient[0] + " " + ingredient[1] + "s of " + key + ", ");
+                                    }
+                                }
+                            } else {
+                                var ingredient = ingredient_list[key];
+                                ingredient[0] *= size;
+
+                                if (ingredient[0] == 0) {
+                                    str = str + ("and " + key + ".");
+
+                                } else if(ingredient[0] == 1) {
+
+                                    if (ingredient[1] == "") {
+
+                                        str = str + ("and " + ingredient[0] + " " + key + ".");
+                                    } else {
+                                        str = str + ("and " + ingredient[0] + " " + ingredient[1] + " of " + key + ".");
+
+                                    }
+                                } else{
+                                    if (ingredient[1] == "") {
+                                        str = str + ("and " + ingredient[0] + " " + key + "s.");
+                                    } else {
+                                        str = str + ("and " + ingredient[0] + " " + ingredient[1] + "s of " + key + ".");
+                                    }
+                                }
+                            }
+                        }
+                        
+                        //respond
+                        response.askWithCard(
+                            str, "Now, would you like to hear the ingredients again or shall I explain the instructions?",
+                            cardTitle, cardContent); 
+                        // move above to function
+            });
+        });
+}
     },
 
     InstructionIntent: function (intent, session, response) {
