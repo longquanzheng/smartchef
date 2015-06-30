@@ -17,22 +17,6 @@
 var http = require('http');
 var https = require('https');
 
-var unitAbbrev = {
-    'tbs' : 'tablespoon',
-    'tbsp' : 'tablespoon',
-    'tbl' : 'tablespoon',
-    'tsp' : 'teaspoon',
-    'oz' : 'ounce',
-    'lb' : 'pound',
-    'fl oz' : 'fluid ounce',
-    'c' : 'cup',
-    'pt' : 'pint',
-    'qt' : 'quart',
-    'gal' : 'gallon',
-    'doz' : 'dozen',
-    'to taste' : ''
-}
-
 var AlexaSkill = require('./AlexaSkill'),
     getInstructions = require('./api').getInstructions,
     recipes = require('./recipes'),
@@ -53,11 +37,12 @@ var MyChef = function () {
 // Extend AlexaSkill
 MyChef.prototype = Object.create(AlexaSkill.prototype);
 MyChef.prototype.constructor = MyChef;
+MyChef.prototype.stepNumber = 0;
 
 MyChef.prototype.eventHandlers.onLaunch = function (launchRequest, session, response) {
-    var speechOutput = "Hey there. Let's think about recipes. What would you like to make? For example, say something like, how do I make steak.";
+    var speechOutput = "Hey how's it going. Let's think about recipes. What would you like to make? For example, say something like, how do I make steak.";
     var repromptText = "Just ask something like how do I make steak, or something, and I'll see what I can turn up.";
-    response.askWithCard(speechOutput, repromptText);
+    response.ask(speechOutput, repromptText);
 };
 
 MyChef.prototype.intentHandlers = {
@@ -86,390 +71,92 @@ MyChef.prototype.intentHandlers = {
                     var recipe = content['results'][0];
                     
                     https.get(recipe['url'], function(res) {
-                      var body = '';
-                      res.setEncoding('utf8');
-                      res.on('data', function(chunk) {
-                        body += chunk;
-                      });
+                        var body = '';
+                        res.setEncoding('utf8');
+                        res.on('data', function(chunk) {
+                            body += chunk;
+                        });
 
-                        res.on('end', function() {
+                        res.on('end', function(){  
                             var content = JSON.parse(body);
 
-                            var category = content['cuisine'];
-                            var index = category.indexOf(':');
-                            if (index !== -1) {
-                                category = category.substring(0, index);
-                            }
+                            console.log(content);
 
-                            var ingredients = {};
-                            for (var i = 0; i < content['ingredients'].length; i++) {
-                                var ingrd = content['ingredients'][i];
+                            db.putRecipe(content,function(){
+                                db.putStep("0",function(){
+                                    console.log("succ put step");
 
-                                var quantity = parseInt(ingrd['quantity']);
-                                if (!quantity) {
-                                    quantity = 0
-                                }
-
-                                var unit = ingrd['unit'].toLowerCase();
-                                if (unit in unitAbbrev) {
-                                    unit = unitAbbrev[unit];
-                                }
-
-                                ingredients[ingrd['name']] = [quantity, unit];
-                            }
-
-                            var details = {
-                                'category' : category,
-                                'serves' : content['serves'],
-                                'ingredients' : ingredients,
-                                'steps' : content['directions']
-                            };
-
-                            var result = {};
-                            result[recipe['name']] = details;
-
-                            console.log(result);
-
-                            //if (recipes[recipeName]) { // step 0
-                            // recipe exists
-
-                            // step 1
-                            //db.putRecipe(recipes[recipeName]);
-
-                            // step 2
-                            //db.updateSize(1);
-
-                            // step 3
-                            //db.updateStep(0);
-
-                            db.putRecipe(result[recipe['name']],function(){
-                                //db.getRecipe(function(recipe){
-
-                                    console.log("logged recipe",recipe);
-                                    db.putSize("1",function(){
-
-                                        console.log("succ put size2");
-                                        //db.getSize(function(size){
-
-                                    
-                                            db.putStep("0",function(){
-
-                                                console.log("succ put step");
-                                               // db.getStep(function(step){
-                                                    response.ask("Sorry, I");
-                                                    // response.askWithCard(
-                                                    // "I know about " + recipeName + "! Do you want to hear the ingredients or shall I explain instructions?",
-                                                    // "Sorry, didn't quite catch that. Ingredients, or instructions?", 
-                                                    // cardTitle, cardContent);
-                                                });
-                                          //  }); 
-                                        //});
-                                    //});
+                                    response.askWithCard(
+                                        "I know about " + recipeName + "! Do you want to hear the ingredients or shall I explain instructions?",
+                                        "Sorry, didn't quite catch that. Ingredients, or instructions?", 
+                                    cardTitle, cardContent);
                                 });
                             });
-
-                            // response.askWithCard(
-                            //     "I know about " + recipeName + "! Do you want to hear the ingredients or shall I explain instructions?",
-                            //     "Sorry, didn't quite catch that. Ingredients, or instructions?", 
-                            //     cardTitle, cardContent);
-                            // } else {
-                            //     response.ask("Sorry, I have no idea how to make " + recipeName + ". Any other requests?");
-                            // }
+                        }).on('error', function(e) {
+                            response.tell("sorry i have trouble accessing internet");
+                            console.log("Got error: " + e.message);
                         });
-                    }).on('error', function(e) {
-                        console.log("Got error: " + e.message);
                     });
                 }
             });
-
-        }).on('error', function(e) {
-            console.log("Got error: ", e);
         });
     },
 
     IngredientIntent: function (intent, session, response) {
-        var servingModified = intent.slots.Servings,
-            servings;
         
         var cardTitle = "Ingredient intent received.";
         var cardContent = "";
+   
+            function getIngredient(ingObj){
+                return (ingObj['quantity'] +" "+ingObj['unit']+" "+ingObj['name']);
+            }
 
-        var recipizzles = recipes["steak"]["ingredients"];
-
-        if (servingModified) {
-            servings = parseInt(servingModified.value);
-            db.putSize(servings,function() {
-                db.getRecipe(function(recipe) {
-                    // the ingredientFunction
-                    //move this to function
-                        var ingredient_list = recipizzles;//recipe["ingredient_lists"];
-                        var str = "You need ";
-                        var i = 0;
-                        var size = 1;//getSize() / recipe.serves;
-                        db.getSize(function(serv_size){
-                            size = serv_size;
-
-                           for (var key in ingredient_list) {
-                            i++;
-                            if (i != Object.keys(ingredient_list).length) {
-
-                                var ingredient = ingredient_list[key];
-                                ingredient[0] *= size;
-
-                                if (ingredient[0] == 0) {
-
-                                    str = str + (key + ", ");
-                                } else if (ingredient[0] == 1) {
-
-                                    if (ingredient[1] == "") {
-                                        str = str + (ingredient[0] + " " + key + ", ");
-                                    } else {
-                                        str = str + (ingredient[0] + " " + ingredient[1] + " of " + key + ", ");
-                                    }
-
-                                } else {
-                                    if (ingredient[1] == "") {
-                                        str = str + (ingredient[0] + " " + key + "s, ");
-                                    } else {
-                                        str = str + (ingredient[0] + " " + ingredient[1] + "s of " + key + ", ");
-                                    }
-                                }
-                            } else {
-                                var ingredient = ingredient_list[key];
-                                ingredient[0] *= size;
-
-                                if (ingredient[0] == 0) {
-                                    str = str + ("and " + key + ".");
-
-                                } else if(ingredient[0] == 1) {
-
-                                    if (ingredient[1] == "") {
-
-                                        str = str + ("and " + ingredient[0] + " " + key + ".");
-                                    } else {
-                                        str = str + ("and " + ingredient[0] + " " + ingredient[1] + " of " + key + ".");
-
-                                    }
-                                } else{
-                                    if (ingredient[1] == "") {
-                                        str = str + ("and " + ingredient[0] + " " + key + "s.");
-                                    } else {
-                                        str = str + ("and " + ingredient[0] + " " + ingredient[1] + "s of " + key + ".");
-                                    }
-                                }
-                            }
-                        }
-                        
-                        //respond
-                        response.askWithCard(
-                            str, "Now, would you like to hear the ingredients again or shall I explain the instructions?",
-                            cardTitle, cardContent); 
-                        // move above to function
-                });
-            });
-        });
-        } else {
             db.getRecipe(function(recipe) {
-                // the ingredientFunction
-                //move this to function
-                        var ingredient_list = recipe["ingredient_lists"];
-                        var str = "You need ";
-                        var i = 0;
-                        var size = 1;//getSize() / recipe.serves;
-                        db.getSize(function(serv_size){
-                            size = serv_size;
-
-                            console.log(size);
-
-                           for (var key in ingredient_list) {
-                            i++;
-                            if (i != Object.keys(ingredient_list).length) {
-
-                                var ingredient = ingredient_list[key];
-                                ingredient[0] *= size;
-
-                                if (ingredient[0] == 0) {
-
-                                    str = str + (key + ", ");
-                                } else if (ingredient[0] == 1) {
-
-                                    if (ingredient[1] == "") {
-                                        str = str + (ingredient[0] + " " + key + ", ");
-                                    } else {
-                                        str = str + (ingredient[0] + " " + ingredient[1] + " of " + key + ", ");
-                                    }
-
-                                } else {
-                                    if (ingredient[1] == "") {
-                                        str = str + (ingredient[0] + " " + key + "s, ");
-                                    } else {
-                                        str = str + (ingredient[0] + " " + ingredient[1] + "s of " + key + ", ");
-                                    }
-                                }
-                            } else {
-                                var ingredient = ingredient_list[key];
-                                ingredient[0] *= size;
-
-                                if (ingredient[0] == 0) {
-                                    str = str + ("and " + key + ".");
-
-                                } else if(ingredient[0] == 1) {
-
-                                    if (ingredient[1] == "") {
-
-                                        str = str + ("and " + ingredient[0] + " " + key + ".");
-                                    } else {
-                                        str = str + ("and " + ingredient[0] + " " + ingredient[1] + " of " + key + ".");
-
-                                    }
-                                } else{
-                                    if (ingredient[1] == "") {
-                                        str = str + ("and " + ingredient[0] + " " + key + "s.");
-                                    } else {
-                                        str = str + ("and " + ingredient[0] + " " + ingredient[1] + "s of " + key + ".");
-                                    }
-                                }
-                            }
-                        }
-                        
-                        //respond
-                        response.askWithCard(
-                            str, "Now, would you like to hear the ingredients again or shall I explain the instructions?",
-                            cardTitle, cardContent); 
-                        // move above to function
+                    recipe = JSON.parse(recipe);
+                    console.log('IngredientIntent',recipe['directions']);
+                    var ingredient_list = recipe["ingredients"];
+                    var str = "You need "+ getIngredient(ingredient_list[0]);
+                    for (var i=1; i < ingredient_list.length; i++) {
+                            str = str + getIngredient(ingredient_list[i]);
+                    }
+                    
+                    //respond
+                    response.askWithCard(
+                        str, "Now, would you like to hear the ingredients again or shall I explain the instructions?",
+                        cardTitle, cardContent); 
             });
-        });
-}
-    },
+    } ,
 
     InstructionIntent: function (intent, session, response) {
-        var servingsOrRecipe = intent.slots.Servings,
-            servings;
-        
-        var cardTitle = "Step #(step number from db)";
+        db.getRecipe(function(recipe) {
+            recipe = JSON.parse(recipe);
+            console.log("InstructionIntent",recipe);
 
-        if(servingsOrRecipe){
-            servings = parseInt(servingsOrRecipe.value);
-            if (isNaN(servings)) //recipe
-            {
-                console.log("hi");//do same stuff as recipeIntent
-                db.getStep(function(step){
-                    doInterpretStep(step);
-                });
-            }
-            else                         //servings
-            { console.log("no");
-                db.putSize(servings,function(){
-                    db.putStep(1,function(){
-                        doInterpretStep(1);
-                    });    
-                });
-                
-            }
-        }else{
             db.getStep(function(step){
-                doInterpretStep(step);
-            });
-        }
-
-        function doInterpretStep(stepIndexRaw){
-            //interpret step
-            var stepIndex = stepIndexRaw-1;//getStep() - 1;
-            var recipe = recipes["steak"];//getRecipe();
-
-            if(recipe["steps"].length <= stepIndex){
-                console.log("step is ",stepIndex);
-                db.putStep(1,function(){
-                    response.ask("Congratulations! You have completed all the steps!");
-                });
-            }else{
-                console.log(recipe["steps"][stepIndex]);
-            
-
-                var step = recipe["steps"][stepIndex];
-                var str = "";
-                var size = 1;//getSize() / recipe.serves;
-                
-
-                for(var i = 0; i < step.length; i++) {
-                    if(step.charAt(i) == '~') {
-                        var numstr = "";
-                        i+=2;
-                        for(var j = i; j < step.length; j++) {
-                            if(step.charAt(i) == '~') {
-                                i++;
-                                var num = parseInt(numstr) * size;
-                                str += "" + num;
-                                break;
-                            }
-                            numstr += step.charAt(j);
-                            i++;
-                        }
-                    }
-                    else if(step.charAt(i) == '*'){
-                        var numstr = "";
-                        i+=2;
-                        for(var j = i; j < step.length; j++) {
-                            if(step.charAt(i) == '*') {
-                                i++;
-                                var num = parseInt(numstr);
-                                var hrs = num/3600;
-                                num %= 3600;
-                                var min = num/60;
-                                num %= 60;
-                                var sec = num;
-                                if(hrs > 0){
-                                    
-                                }
-                                if(min > 0){
-                                    
-                                }
-                                if(sec > 0)
-                                {
-                                    str += "" + sec + " seconds";
-                                }
-                                break;
-                            }
-                            numstr += step.charAt(j);
-                            i++;
-                        }               
-                    }
-                    else {
-                        str += step.charAt(i);
-                    }
+                step = JSON.parse(step);
+                step = parseInt(step);
+                if(! (step>=0) ){
+                    step = 0;
                 }
-                
-                if (step) {
-                    db.putStep( parseInt(stepIndexRaw)+1 ,function(){
-                        response.askWithCard(str + ". Let me know when you're ready for the next step.", cardTitle, str);
+
+                var str;
+                if(step>=recipe['directions'].length){
+                    str = "Congradulations! you have finished the "+ recipe['name'];
+                    db.putStep( 0, function(){
+                        response.ask(str,"Let me know when you're ready for the next step");
                     });
-                } else {
-                    response.ask("Hmm. Weird. I had some problems getting the instructions. Try asking again.");
+                }else{
+                    str = "step #"+ (step+1) + ": "+ recipe['directions'];
+                    db.putStep( step+1, function(){
+                        response.ask(str,"Let me know when you're ready for the next ste");
+                    });
                 }
-            }
-        }
-    },  
+            }); 
+        });
+    },
 
 
-    // InstructionIntent: function (intent, session, response) {
-    //     var numServings = 1;
-    //     if (intent.slots.Servings.value) {
-    //         numServings = parseInt(intent.slots.Servings.value);
-    //     }
-    //     var instructions = "";
 
-    //     for (var i = 0; i < recipes["steak"]["steps"].length; i = i+1) {
-    //         instructions = instructions +" "+ recipes["steak"]["steps"][i];
-    //     }
-
-    //     var cardTitle = "Instructions for " + numServings;
-    //     if (instructions) {
-    //         response.tellWithCard(instructions + " Enjoy ya little shit.", cardTitle, instructions);
-    //     } else {
-    //         response.ask("I'm sorry, I currently do not know the recipe for " + numServings + ". What else can I help? ");
-    //     }
-
-    // },
     HelpIntent: function (intent, session, response) {
         var cardTitle = intent.name;
         var speechOutput = "You can ask how to cook something, or, you can say exit... Now, what can I help you with?";
@@ -478,19 +165,7 @@ MyChef.prototype.intentHandlers = {
     },
 
     TimerIntent: function(intent, session, response) {
-        if (intent.slots.Time) {
-            var time = parseInt(intent.slots.Time.value)*1000;
-            var cardTitle = "Timer for " + time + " milliseconds.";
-            var output = "Sleeping for " + time + " milliseconds.";
-            setTimeout(function() {
-                response.ask("It's been " + time + " milliseconds. Now what?", "I waited, what else do you want?");
-            }, time);
-        }
-    },
-    MistakeIntent: function (intent, session, response) {
-        var amount = intent.slots.Amount.value;
-        var type = intent.slots.Ingredient.value;
-        response.ask("sorr to know that you put "+amount+" of "+type +" by mistake");
+        response.ask("I am going to finish it soon"," what?");
     }
 };
 

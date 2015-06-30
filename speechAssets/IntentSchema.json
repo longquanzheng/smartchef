@@ -39,19 +39,6 @@
           "type": "LITERAL"
         }
       ]
-    },
-       {
-      "intent": "MistakeIntent",
-      "slots": [ 
-        {
-          "name": "Ingredient",
-          "type": "LITERAL"
-        },
-        {
-          "name": "Amount",
-          "type": "LITERAL"
-        }
-      ]
     }
   ]
 }

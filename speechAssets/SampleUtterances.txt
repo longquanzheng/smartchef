@@ -1,14 +1,12 @@
 RecipeIntent   how do I make {recipe | Recipe}
 RecipeIntent   how to make {recipe | Recipe}
 
-IngredientIntent   ingredients for {number | Servings}
+IngredientIntent   ingredients
 IngredientIntent   give me the ingredients
 
-InstructionIntent   instructions for {number | Servings}
+InstructionIntent   instructions
 InstructionIntent   tell me the instructions
 
 TimerIntent   yo give me {time | Time} seconds
 
 HelpIntent help
-
-MistakeIntent I have put {number | Amount} amount of {recipe|Ingredient} by mistake
