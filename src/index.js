@@ -40,8 +40,8 @@ MyChef.prototype.constructor = MyChef;
 MyChef.prototype.stepNumber = 0;
 
 MyChef.prototype.eventHandlers.onLaunch = function (launchRequest, session, response) {
-    var speechOutput = "Hey how's it going. Let's think about recipes. What would you like to make? For example, say something like, how do I make steak.";
-    var repromptText = "Just ask something like how do I make steak, or something, and I'll see what I can turn up.";
+    var speechOutput = "Hey what's up. Let's think about recipes. What would you like to make? Say something like, how do I make bread.";
+    var repromptText = "Just ask something like how do I make beef, or something.";
     response.ask(speechOutput, repromptText);
 };
 
@@ -87,8 +87,8 @@ MyChef.prototype.intentHandlers = {
                                     console.log("succ put step");
 
                                     response.askWithCard(
-                                        "I know about " + recipeName + "! Do you want to hear the ingredients or shall I explain instructions?",
-                                        "Sorry, didn't quite catch that. Ingredients, or instructions?", 
+                                        "I know about " + recipe['name'] + "! Do you want to hear the ingredients or shall I explain steps? say something like tell me the ingredients or tell me the steps ",
+                                        "Sorry, didn't quite catch that. Ingredients, or steps?", 
                                     cardTitle, cardContent);
                                 });
                             });
@@ -103,12 +103,14 @@ MyChef.prototype.intentHandlers = {
     },
 
     IngredientIntent: function (intent, session, response) {
-        
+        console.log("IngredientIntent");
+
         var cardTitle = "Ingredient intent received.";
         var cardContent = "";
-   
+            
+            
             function getIngredient(ingObj){
-                return (ingObj['quantity'] +" "+ingObj['unit']+" "+ingObj['name']);
+                return (", "+ingObj['quantity'] +" "+ingObj['unit']+" "+ingObj['name']);
             }
 
             db.getRecipe(function(recipe) {
@@ -122,33 +124,40 @@ MyChef.prototype.intentHandlers = {
                     
                     //respond
                     response.askWithCard(
-                        str, "Now, would you like to hear the ingredients again or shall I explain the instructions?",
+                        str, "Now, would you like to hear the ingredients again or shall I explain the steps?",
                         cardTitle, cardContent); 
             });
     } ,
 
     InstructionIntent: function (intent, session, response) {
+        console.log("InstructionIntent");
+        var cardTitle = "InstructionIntent intent received.";
+        var cardContent = "";
+
         db.getRecipe(function(recipe) {
             recipe = JSON.parse(recipe);
             console.log("InstructionIntent",recipe);
 
             db.getStep(function(step){
-                step = JSON.parse(step);
+                console.log("step1:",step);
+                //step = JSON.parse(step);
                 step = parseInt(step);
                 if(! (step>=0) ){
                     step = 0;
                 }
-
+                console.log("step2:",step);
+                console.log("length",recipe['directions'].length);
+                
                 var str;
                 if(step>=recipe['directions'].length){
-                    str = "Congradulations! you have finished the "+ recipe['name'];
+                    str = "Congradulations! you have finished the "+ recipe['name'] +". say tell me the steps to retell you the steps. Or you can buy something on amazon.com to support me.";
                     db.putStep( 0, function(){
-                        response.ask(str,"Let me know when you're ready for the next step");
+                        response.askWithCard(str,"Let me know when you're ready for the next step",cardTitle, cardContent); 
                     });
                 }else{
-                    str = "step #"+ (step+1) + ": "+ recipe['directions'];
+                    str = "step #"+ (step+1) + ": "+ recipe['directions'][step] +". say next to go on";
                     db.putStep( step+1, function(){
-                        response.ask(str,"Let me know when you're ready for the next ste");
+                        response.askWithCard(str,"Let me know when you're ready for the next step",cardTitle, cardContent); 
                     });
                 }
             }); 
