@@ -4,8 +4,10 @@ RecipeIntent   how to make {recipe | Recipe}
 IngredientIntent   ingredients
 IngredientIntent   give me the ingredients
 
-InstructionIntent   instructions
-InstructionIntent   tell me the instructions
+InstructionIntent   steps
+InstructionIntent   next
+InstructionIntent   next step
+InstructionIntent   tell me the steps
 
 TimerIntent   yo give me {time | Time} seconds
 
